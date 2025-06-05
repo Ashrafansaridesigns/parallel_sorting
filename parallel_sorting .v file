@@ -1,0 +1,128 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: IIT Jammu
+// Engineer: Ashraf Ansari
+// 
+// Create Date: 06/03/2025 04:09:41 PM
+// Design Name: 
+// Module Name: parallel_sortingv
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module parallel_sortingv(
+input [15:0] p0,p1,p2,p3,p4,p5,p6,p7,
+input reset,clk,start,
+output [15:0] q0,q1,q2,q3,q4,q5,q6,q7
+);
+wire [15:0] y1,y2,y3,y4,y5,y6,y7,y8;
+wire [15:0] x1,x2,x3,x4,x5,x6,x7,x8;
+
+  dff dff_0 (.d(y1),.clk(clk),.reset(reset),.q(q0));
+  dff dff_1 (.d(y2),.clk(clk),.reset(reset),.q(q1));
+  dff dff_2 (.d(y3),.clk(clk),.reset(reset),.q(q2));
+  dff dff_3 (.d(y4),.clk(clk),.reset(reset),.q(q3));
+  dff dff_4 (.d(y5),.clk(clk),.reset(reset),.q(q4));
+  dff dff_5 (.d(y6),.clk(clk),.reset(reset),.q(q5));
+  dff dff_6 (.d(y7),.clk(clk),.reset(reset),.q(q6));
+  dff dff_7 (.d(y8),.clk(clk),.reset(reset),.q(q7));
+
+// Muxes to choose between input or feedback from DFF
+
+  mux mux_0 (.am(p0),.bm(q0),.sel(start),.out(x1));
+  mux mux_1 (.am(p1),.bm(q1),.sel(start),.out(x2));
+  mux mux_2 (.am(p2),.bm(q2),.sel(start),.out(x3));
+  mux mux_3 (.am(p3),.bm(q3),.sel(start),.out(x4));
+  mux mux_4 (.am(p4),.bm(q4),.sel(start),.out(x5));
+  mux mux_5 (.am(p5),.bm(q5),.sel(start),.out(x6));
+  mux mux_6 (.am(p6),.bm(q6),.sel(start),.out(x7));
+  mux mux_7 (.am(p7),.bm(q7),.sel(start),.out(x8));
+
+  sub_block sb_0 (.x1(x1),.x2(x2),.x3(x3),.x4(x4),.x5(x5),.x6(x6),.x7(x7),.x8(x8),
+    .y1(y1),.y2(y2),.y3(y3),.y4(y4),.y5(y5),.y6(y6),.y7(y7),.y8(y8));
+
+endmodule
+
+module basic_block_network (   //block network
+input [15:0] a,                //inputs
+input [15:0] b,
+output [15:0] max,
+output [15:0] min
+);
+  wire less_than, greater_than, equal;
+
+  comparator comp_0 (.a(a), .b(b), .less_than(less_than), .greater_than(greater_than), .equal(equal));
+
+  mux m0 (.am(b), .bm(a), .sel(less_than), .out(max));
+  mux m1 (.am(a), .bm(b), .sel(less_than), .out(min));
+endmodule
+
+// Comparator to compare two 16-bit values
+
+module comparator (    //comparator
+input [15:0] a,       // input a 
+input [15:0] b,         //input b
+output reg less_than,
+output reg greater_than,
+output reg equal
+);
+always @(*) begin
+  if (a < b) begin
+    less_than <= 1'b1; greater_than <= 1'b0; equal <= 1'b0;
+  end else if (a > b) begin
+    less_than <= 1'b0; greater_than <= 1'b1; equal <= 1'b0;
+  end else begin
+    less_than <= 1'b0; greater_than <= 1'b0; equal <= 1'b1;
+  end
+end
+endmodule
+
+module mux (
+input [15:0] am,
+input [15:0] bm,
+input sel,
+output [15:0] out
+);
+  assign out = sel ? am : bm;
+endmodule
+
+module sub_block (
+input [15:0] x1,x2,x3,x4,x5,x6,x7,x8,     //inputs 
+output [15:0] y1,y2,y3,y4,y5,y6,y7,y8       //outputs
+);
+  wire [15:0] s1,s2,s3,s4,s5,s6;
+
+  basic_block_network bb0 (.a(x1), .b(x2), .max(y1), .min(s1));
+  basic_block_network bb1 (.a(x3), .b(x4), .max(s2), .min(s3));
+  basic_block_network bb2 (.a(x5), .b(x6), .max(s4), .min(s5));
+  basic_block_network bb3 (.a(x7), .b(x8), .max(s6), .min(y8));
+
+  basic_block_network bb4 (.a(s1), .b(s2), .max(y2), .min(y3));
+  basic_block_network bb5 (.a(s3), .b(s4), .max(y4), .min(y5));
+  basic_block_network bb6 (.a(s5), .b(s6), .max(y6), .min(y7));
+endmodule
+
+module dff (
+input [15:0] d,
+input clk,
+input reset,
+output reg [15:0] q
+);
+always @(posedge clk or posedge reset) begin
+  if (reset)
+    q <= 16'h0000;
+  else
+    q <= d;
+end
+endmodule
+
